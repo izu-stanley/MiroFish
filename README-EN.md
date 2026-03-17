@@ -4,9 +4,7 @@
 
 <a href="https://trendshift.io/repositories/16144" target="_blank"><img src="https://trendshift.io/api/badge/repositories/16144" alt="666ghj%2FMiroFish | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-简洁通用的群体智能引擎，预测万物
-</br>
-<em>A Simple and Universal Swarm Intelligence Engine, Predicting Anything</em>
+A Simple and Universal Swarm Intelligence Engine, Predicting Anything
 
 <a href="https://www.shanda.com/" target="_blank"><img src="./static/image/shanda_logo.png" alt="666ghj%2MiroFish | Shanda" height="40"/></a>
 
@@ -20,7 +18,7 @@
 [![X](https://img.shields.io/badge/X-Follow-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/mirofish_ai)
 [![Instagram](https://img.shields.io/badge/Instagram-Follow-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/mirofish_ai/)
 
-[English](./README-EN.md) | [中文文档](./README.md)
+[English](./README.md) | [中文](./README-ZH.md)
 
 </div>
 
@@ -112,19 +110,13 @@ cp .env.example .env
 # Edit the .env file and fill in the required API keys
 ```
 
-**Required Environment Variables:**
+**Environment Variables (CLI mode):**
 
 ```env
-# LLM API Configuration (supports any LLM API with OpenAI SDK format)
-# Recommended: Alibaba Qwen-plus model via Bailian Platform: https://bailian.console.aliyun.com/
-# High consumption, try simulations with fewer than 40 rounds first
-LLM_API_KEY=your_api_key
-LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-LLM_MODEL_NAME=qwen-plus
-
-# Zep Cloud Configuration
-# Free monthly quota is sufficient for simple usage: https://app.getzep.com/
-ZEP_API_KEY=your_zep_api_key
+# Cursor Agent CLI - main brain (replaces Ollama)
+# Install: curl https://cursor.com/install -fsS | bash
+CURSOR_AGENT_PATH=cursor-agent
+USE_LOCAL_MODE=true
 ```
 
 #### 2. Install Dependencies
@@ -162,17 +154,49 @@ npm run backend   # Start backend only
 npm run frontend  # Start frontend only
 ```
 
+#### 4. CLI Mode (No UI)
+
+Use Cursor Agent as the brain—no Ollama or cloud services:
+
+```bash
+# Install Cursor Agent CLI
+curl https://cursor.com/install -fsS | bash
+
+# Run full pipeline (seed files to report)
+npm run run -- <project-dir> -r "simulation requirement description"
+
+# Examples
+npm run run -- ./my-docs -r "Predict campus event outcomes"
+npm run run -- . --seed-file doc.md -r "Simulate social media response" -o report.md
+```
+
 ### Option 2: Docker Deployment
+
+**Prerequisites:** Docker and Docker Compose only—no Python, Node, or uv required.
 
 ```bash
 # 1. Configure environment variables (same as source deployment)
 cp .env.example .env
 
-# 2. Pull image and start
+# 2. Build and start the web app
 docker compose up -d
 ```
 
-Reads `.env` from root directory by default, maps ports `3000 (frontend) / 5001 (backend)`
+Reads `.env` from root directory by default, maps ports `3000 (frontend) / 5001 (backend)`.
+
+**Trigger the pipeline from the host (no local installs):**
+
+Use `run.sh` to run the full pipeline inside Docker. Place seed files (.md, .txt, .pdf) in your project directory.
+
+```bash
+# Run pipeline (project dir must contain seed files)
+./run.sh ./my-project -r "Simulate campus event outcomes"
+
+# Write report to file in project dir
+./run.sh ./my-project -r "Predict campus event outcomes" -o report.md
+```
+
+The script mounts your project directory into the container and shares outputs with the web app via the `backend/uploads` volume.
 
 > Mirror address for faster pulling is provided as comments in `docker-compose.yml`, replace if needed.
 

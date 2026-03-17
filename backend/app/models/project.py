@@ -238,6 +238,36 @@ class ProjectManager:
         return True
     
     @classmethod
+    def add_file_from_path(cls, project_id: str, source_path: str, original_filename: Optional[str] = None) -> Dict[str, str]:
+        """
+        Copy a file from filesystem into the project (for CLI usage).
+
+        Args:
+            project_id: Project ID
+            source_path: Absolute path to source file
+            original_filename: Optional display name (default: basename of source_path)
+
+        Returns:
+            File info dict {original_filename, path, size}
+        """
+        if not os.path.exists(source_path):
+            raise FileNotFoundError(f"Source file not found: {source_path}")
+        name = original_filename or os.path.basename(source_path)
+        files_dir = cls._get_project_files_dir(project_id)
+        os.makedirs(files_dir, exist_ok=True)
+        ext = os.path.splitext(name)[1].lower()
+        safe_filename = f"{uuid.uuid4().hex[:8]}{ext}"
+        dest_path = os.path.join(files_dir, safe_filename)
+        shutil.copy2(source_path, dest_path)
+        file_size = os.path.getsize(dest_path)
+        return {
+            "original_filename": name,
+            "saved_filename": safe_filename,
+            "path": dest_path,
+            "size": file_size,
+        }
+
+    @classmethod
     def save_file_to_project(cls, project_id: str, file_storage, original_filename: str) -> Dict[str, str]:
         """
         保存上传的文件到项目目录

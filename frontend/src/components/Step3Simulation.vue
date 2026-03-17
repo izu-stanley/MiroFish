@@ -404,13 +404,13 @@ const doStartSimulation = async () => {
       addLog(`设置最大模拟轮数: ${props.maxRounds}`)
     }
     
-    addLog('已开启动态图谱更新模式')
+    addLog('Dynamic graph memory update enabled')
     
     const res = await startSimulation(params)
     
     if (res.success && res.data) {
       if (res.data.force_restarted) {
-        addLog('✓ 已清理旧的模拟日志，重新开始模拟')
+        addLog('Cleared old simulation logs, restarting')
       }
       addLog('✓ 模拟引擎启动成功')
       addLog(`  ├─ PID: ${res.data.process_pid || '-'}`)
@@ -645,12 +645,12 @@ const handleNextStep = async () => {
   }
   
   if (isGeneratingReport.value) {
-    addLog('报告生成请求已发送，请稍候...')
+    addLog('Report generation request sent, please wait...')
     return
   }
   
   isGeneratingReport.value = true
-  addLog('正在启动报告生成...')
+  addLog('Starting report generation...')
   
   try {
     const res = await generateReport({
@@ -660,16 +660,16 @@ const handleNextStep = async () => {
     
     if (res.success && res.data) {
       const reportId = res.data.report_id
-      addLog(`✓ 报告生成任务已启动: ${reportId}`)
+      addLog(`Report generation started: ${reportId}`)
       
       // 跳转到报告页面
       router.push({ name: 'Report', params: { reportId } })
     } else {
-      addLog(`✗ 启动报告生成失败: ${res.error || '未知错误'}`)
+      addLog(`Report generation failed: ${res.error || 'Unknown error'}`)
       isGeneratingReport.value = false
     }
   } catch (err) {
-    addLog(`✗ 启动报告生成异常: ${err.message}`)
+    addLog(`Report generation error: ${err.message}`)
     isGeneratingReport.value = false
   }
 }

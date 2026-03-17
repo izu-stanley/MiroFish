@@ -1,0 +1,23 @@
+Under the simulated condition that Apple skips the iPhone 18 and extends the current lineup by one year, **advocate and critical voices** are predicted to frame the decision through the lens of product longevity, repairability, and planned obsolescence rather than through upgrade timing or ecosystem news. The simulated post database (**get_simulation_posts**) returns the same set of first-wave posts as in earlier chapters; when filtered for advocate and critical content, the only predicted posts that qualify are those of Louis Rossmann and iFixit. The graph (**insight_forge**, **panorama_search**) describes both entities as repair- and right-to-repair focused and supplies their predicted statements on Twitter and Reddit. The following summarises how the simulation predicts these voices to behave and where it does not supply further predicted facts.
+
+**Repair advocates as critical framers**
+
+In the simulation, **advocate and critical reaction is carried by two actors**: Louis Rossmann and iFixit. The graph models Louis Rossmann as a repair advocate on YouTube who publicly opposes Apple on repair and planned obsolescence. His predicted response on both platforms ties the skip directly to durability and repairability and sets a condition for support:
+
+> "Skipping a year doesn't fix the real issue: making devices that last and are repairable. Extending the cycle is good only if they stop planned obsolescence."
+
+That framing treats the one-year extension as **insufficient by itself** and shifts the criterion from “no new model” to **whether Apple changes practices** on planned obsolescence and repairability. So in the predicted future, a prominent repair advocate is expected to use the announcement to reinforce a pre-existing critical narrative rather than to welcome the pause as a win.
+
+iFixit, characterised in the graph as a right-to-repair focused company that does teardowns and critical coverage of Apple repairability, is predicted to post on both Twitter and Reddit with a more observational but still critical angle:
+
+> "Apple's decision to skip iPhone 18 in 2026 raises questions about repairability and long-term support. We'll be watching what it means for teardowns and parts."
+
+So **advocate and critical voices** in the simulation are predicted to (1) **conditionally accept or question** the extended cycle, (2) **reframe the story** around longevity and repairability, and (3) **keep scrutiny on Apple**—either by demanding an end to planned obsolescence (Rossmann) or by committing to monitor implications for teardowns and parts (iFixit).
+
+**Place in the broader conversation**
+
+**Panorama_search** and the composition of the 16 simulated posts show that Louis Rossmann and iFixit appear in the **same first-wave set** as Apple’s statement, tech media, leakers, MacRumors, Marques Brownlee, and r/iPhone. So in the predicted future, **advocate and critical takes are not confined to a niche channel**; they sit alongside confirmation, supply-chain framing, upgrade advice, and the open-ended community prompt. The repair advocates’ predicted messages are identical on Twitter and Reddit, consistent with the cross-platform parity described in earlier chapters. The r/iPhone post (“How’s everyone feeling about that?”) invites sentiment without taking a stance; the advocate voices **do take a stance**, tying the skip to unresolved issues (planned obsolescence, repairability, long-term support) and thus introducing a **debate dimension** into the initial reaction.
+
+**What the simulation does not predict**
+
+The graph and simulated posts do not supply **other advocate or critical entities** (e.g. consumer-rights groups, regulators, environmental or sustainability advocates, or other repair channels) with distinct predicted posts. There are no predicted **replies or threads** showing how other users or the media respond to Rossmann’s or iFixit’s posts, and no predicted facts on whether the extended lifecycle leads to **policy pressure**, **regulatory attention**, or **broader public debate** on right-to-repair. So the current graph/simulation data **does not contain predicted facts** that support a fuller description of advocate coalitions, policy outcomes, or how mainstream sentiment reacts to these critical frames. What can be reported is the **predicted stance of the two repair-focused voices**: they are expected to use the iPhone 18 skip announcement to emphasise that extending the cycle is good only if it is accompanied by an end to planned obsolescence and greater repairability, and to keep watching implications for teardowns and long-term support.

@@ -9,7 +9,6 @@ from flask import request, jsonify, send_file
 
 from . import simulation_bp
 from ..config import Config
-from ..services.zep_entity_reader import ZepEntityReader
 from ..services.oasis_profile_generator import OasisProfileGenerator
 from ..services.simulation_manager import SimulationManager, SimulationStatus
 from ..services.simulation_runner import SimulationRunner, RunnerStatus
@@ -19,9 +18,15 @@ from ..models.project import ProjectManager
 logger = get_logger('mirofish.api.simulation')
 
 
+def _get_entity_reader():
+    """返回本地实体读取器"""
+    from ..services.local_entity_reader import LocalEntityReader
+    return LocalEntityReader()
+
+
 # Interview prompt 优化前缀
 # 添加此前缀可以避免Agent调用工具，直接用文本回复
-INTERVIEW_PROMPT_PREFIX = "结合你的人设、所有的过往记忆与行动，不调用任何工具直接用文本回复我："
+INTERVIEW_PROMPT_PREFIX = "Based on your persona, memories, and past actions, reply in plain text without calling any tools: "
 
 
 def optimize_interview_prompt(prompt: str) -> str:
@@ -56,19 +61,13 @@ def get_graph_entities(graph_id: str):
         enrich: 是否获取相关边信息（默认true）
     """
     try:
-        if not Config.ZEP_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": "ZEP_API_KEY未配置"
-            }), 500
-        
         entity_types_str = request.args.get('entity_types', '')
         entity_types = [t.strip() for t in entity_types_str.split(',') if t.strip()] if entity_types_str else None
         enrich = request.args.get('enrich', 'true').lower() == 'true'
         
         logger.info(f"获取图谱实体: graph_id={graph_id}, entity_types={entity_types}, enrich={enrich}")
         
-        reader = ZepEntityReader()
+        reader = _get_entity_reader()
         result = reader.filter_defined_entities(
             graph_id=graph_id,
             defined_entity_types=entity_types,
@@ -93,13 +92,7 @@ def get_graph_entities(graph_id: str):
 def get_entity_detail(graph_id: str, entity_uuid: str):
     """获取单个实体的详细信息"""
     try:
-        if not Config.ZEP_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": "ZEP_API_KEY未配置"
-            }), 500
-        
-        reader = ZepEntityReader()
+        reader = _get_entity_reader()
         entity = reader.get_entity_with_context(graph_id, entity_uuid)
         
         if not entity:
@@ -126,15 +119,9 @@ def get_entity_detail(graph_id: str, entity_uuid: str):
 def get_entities_by_type(graph_id: str, entity_type: str):
     """获取指定类型的所有实体"""
     try:
-        if not Config.ZEP_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": "ZEP_API_KEY未配置"
-            }), 500
-        
         enrich = request.args.get('enrich', 'true').lower() == 'true'
         
-        reader = ZepEntityReader()
+        reader = _get_entity_reader()
         entities = reader.get_entities_by_type(
             graph_id=graph_id,
             entity_type=entity_type,
@@ -471,7 +458,7 @@ def prepare_simulation():
         # 这样前端在调用prepare后立即就能获取到预期Agent总数
         try:
             logger.info(f"同步获取实体数量: graph_id={state.graph_id}")
-            reader = ZepEntityReader()
+            reader = _get_entity_reader()
             # 快速读取实体（不需要边信息，只统计数量）
             filtered_preview = reader.filter_defined_entities(
                 graph_id=state.graph_id,
@@ -528,9 +515,9 @@ def prepare_simulation():
                     
                     # 构建详细进度信息
                     stage_names = {
-                        "reading": "读取图谱实体",
-                        "generating_profiles": "生成Agent人设",
-                        "generating_config": "生成模拟配置",
+                        "reading": "Reading graph entities",
+                        "generating_profiles": "Generating agent profiles",
+                        "generating_config": "Generating simulation config",
                         "copying_scripts": "准备模拟脚本"
                     }
                     
@@ -876,7 +863,7 @@ def get_simulation_history():
     用于首页历史项目展示，返回包含项目名称、描述等丰富信息的模拟列表
     
     Query参数：
-        limit: 返回数量限制（默认20）
+        limit: 返回数量限制（默认50）
     
     返回：
         {
@@ -904,7 +891,7 @@ def get_simulation_history():
         }
     """
     try:
-        limit = request.args.get('limit', 20, type=int)
+        limit = request.args.get('limit', 50, type=int)
         
         manager = SimulationManager()
         simulations = manager.list_simulations()[:limit]
@@ -1396,7 +1383,7 @@ def generate_profiles():
         use_llm = data.get('use_llm', True)
         platform = data.get('platform', 'reddit')
         
-        reader = ZepEntityReader()
+        reader = _get_entity_reader()
         filtered = reader.filter_defined_entities(
             graph_id=graph_id,
             defined_entity_types=entity_types,
@@ -1862,7 +1849,7 @@ def get_simulation_actions(simulation_id: str):
     获取模拟中的Agent动作历史
     
     Query参数：
-        limit: 返回数量（默认100）
+        limit: 返回数量（默认200）
         offset: 偏移量（默认0）
         platform: 过滤平台（twitter/reddit）
         agent_id: 过滤Agent ID
@@ -1878,7 +1865,7 @@ def get_simulation_actions(simulation_id: str):
         }
     """
     try:
-        limit = request.args.get('limit', 100, type=int)
+        limit = request.args.get('limit', 200, type=int)
         offset = request.args.get('offset', 0, type=int)
         platform = request.args.get('platform')
         agent_id = request.args.get('agent_id', type=int)
@@ -1986,14 +1973,14 @@ def get_simulation_posts(simulation_id: str):
     
     Query参数：
         platform: 平台类型（twitter/reddit）
-        limit: 返回数量（默认50）
+        limit: 返回数量（默认200）
         offset: 偏移量
     
     返回帖子列表（从SQLite数据库读取）
     """
     try:
         platform = request.args.get('platform', 'reddit')
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get('limit', 200, type=int)
         offset = request.args.get('offset', 0, type=int)
         
         sim_dir = os.path.join(

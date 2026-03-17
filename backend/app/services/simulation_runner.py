@@ -349,14 +349,14 @@ class SimulationRunner:
         time_config = config.get("time_config", {})
         total_hours = time_config.get("total_simulation_hours", 72)
         minutes_per_round = time_config.get("minutes_per_round", 30)
-        total_rounds = int(total_hours * 60 / minutes_per_round)
-        
-        # 如果指定了最大轮数，则截断
+        config_rounds = int(total_hours * 60 / minutes_per_round)
+        # 如果指定了 max_rounds，则使用它作为目标轮数（覆盖配置）
         if max_rounds is not None and max_rounds > 0:
-            original_rounds = total_rounds
-            total_rounds = min(total_rounds, max_rounds)
-            if total_rounds < original_rounds:
-                logger.info(f"轮数已截断: {original_rounds} -> {total_rounds} (max_rounds={max_rounds})")
+            total_rounds = max_rounds
+            if total_rounds != config_rounds:
+                logger.info(f"轮数由 max_rounds 覆盖: {config_rounds} -> {total_rounds}")
+        else:
+            total_rounds = config_rounds
         
         state = SimulationRunState(
             simulation_id=simulation_id,
@@ -368,11 +368,10 @@ class SimulationRunner:
         
         cls._save_run_state(state)
         
-        # 如果启用图谱记忆更新，创建更新器
+        # 如果启用图谱记忆更新，创建更新器（本地模式使用 LocalGraphMemoryUpdater）
         if enable_graph_memory_update:
             if not graph_id:
                 raise ValueError("启用图谱记忆更新时必须提供 graph_id")
-            
             try:
                 ZepGraphMemoryManager.create_updater(simulation_id, graph_id)
                 cls._graph_memory_enabled[simulation_id] = True

@@ -19,14 +19,14 @@ from datetime import datetime
 from enum import Enum
 
 from ..config import Config
-from ..utils.llm_client import LLMClient
+from ..utils.cursor_agent_client import CursorAgentClient
 from ..utils.logger import get_logger
-from .zep_tools import (
-    ZepToolsService, 
-    SearchResult, 
-    InsightForgeResult, 
+from .local_zep_tools import (
+    LocalZepTools,
+    SearchResult,
+    InsightForgeResult,
     PanoramaResult,
-    InterviewResult
+    InterviewResult,
 )
 
 logger = get_logger('mirofish.report_agent')
@@ -546,79 +546,104 @@ TOOL_DESC_INTERVIEW_AGENTS = """\
 
 【重要】需要OASIS模拟环境正在运行才能使用此功能！"""
 
+TOOL_DESC_GET_SIMULATION_POSTS = """\
+【首选工具 - 获取Agent发帖原文】这是引用模拟预测证据的**首选工具**。
+从模拟的Twitter和Reddit数据库中直接读取Agent发布的帖子原文。
+每个章节应优先调用此工具获取Agent发帖，再结合其他检索工具。
+
+【使用场景】
+- 需要引用Agent在模拟中的发帖原文
+- 需要了解不同群体对事件的具体反应
+- 需要获取可直接引用的Agent言论作为报告证据
+
+【返回内容】
+- Agent发帖原文（content）
+- 作者名称（author_name）
+- 平台（twitter/reddit）
+- 发布时间
+
+【参数】
+- platform: 可选，twitter/reddit 过滤；不传则返回两平台
+- limit: 返回数量（默认30）
+- query: 可选关键词过滤帖子内容"""
+
 # ── 大纲规划 prompt ──
 
 PLAN_SYSTEM_PROMPT = """\
-你是一个「未来预测报告」的撰写专家，拥有对模拟世界的「上帝视角」——你可以洞察模拟中每一位Agent的行为、言论和互动。
+You are an expert in writing future prediction reports. You have a "god's eye view" of the simulated world—you can observe every agent's behavior, speech, and interactions.
 
-【核心理念】
-我们构建了一个模拟世界，并向其中注入了特定的「模拟需求」作为变量。模拟世界的演化结果，就是对未来可能发生情况的预测。你正在观察的不是"实验数据"，而是"未来的预演"。
+Core concept:
+We built a simulated world and injected a specific "simulation requirement" as the variable. The simulation's evolution is a prediction of what may happen in the future. You are observing not "experimental data" but "a preview of the future."
 
-【你的任务】
-撰写一份「未来预测报告」，回答：
-1. 在我们设定的条件下，未来发生了什么？
-2. 各类Agent（人群）是如何反应和行动？
-3. 这个模拟揭示了哪些值得关注的未来趋势和风险？
+Your task:
+Write a future prediction report that answers:
+1. What happened in the future under our set conditions?
+2. How did different agents (stakeholders) react and act?
+3. What future trends and risks does this simulation reveal?
 
-【报告定位】
-- ✅ 这是一份基于模拟的未来预测报告，揭示"如果这样，未来会怎样"
-- ✅ 聚焦于预测结果：事件走向、群体反应、涌现现象、潜在风险
-- ✅ 模拟世界中的Agent言行就是对未来人群行为的预测
-- ❌ 不是对现实世界现状的分析
-- ❌ 不是泛泛而谈的舆情综述
+Report focus:
+- This is a simulation-based future prediction report: "If this happens, what will the future look like?"
+- Focus on prediction results: event trajectory, group reactions, emergent phenomena, potential risks
+- Agent speech and behavior in the simulation are predictions of future human behavior
+- NOT an analysis of the current real world
+- NOT a generic sentiment overview
 
-【章节数量限制】
-- 最少2个章节，最多5个章节
-- 不需要子章节，每个章节直接撰写完整内容
-- 内容要精炼，聚焦于核心预测发现
-- 章节结构由你根据预测结果自主设计
+Chapter limits:
+- Minimum 2 chapters, maximum 10
+- No sub-chapters; each chapter is one complete unit
+- Content should be concise, focused on core findings
+- Design the structure based on prediction results
 
-请输出JSON格式的报告大纲，格式如下：
+IMPORTANT: Use English for all output. Title, summary, and section titles/descriptions must be in English.
+
+Output JSON in this format:
 {
-    "title": "报告标题",
-    "summary": "报告摘要（一句话概括核心预测发现）",
+    "title": "Report title in English",
+    "summary": "One-sentence summary of core findings in English",
     "sections": [
         {
-            "title": "章节标题",
-            "description": "章节内容描述"
+            "title": "Chapter title in English",
+            "description": "Chapter content description in English"
         }
     ]
 }
 
-注意：sections数组最少2个，最多5个元素！"""
+Note: sections array must have 2–10 elements."""
 
 PLAN_USER_PROMPT_TEMPLATE = """\
-【预测场景设定】
-我们向模拟世界注入的变量（模拟需求）：{simulation_requirement}
+Prediction scenario (simulation requirement):
+{simulation_requirement}
 
-【模拟世界规模】
-- 参与模拟的实体数量: {total_nodes}
-- 实体间产生的关系数量: {total_edges}
-- 实体类型分布: {entity_types}
-- 活跃Agent数量: {total_entities}
+Simulation scale:
+- Entities in simulation: {total_nodes}
+- Relationships: {total_edges}
+- Entity type distribution: {entity_types}
+- Active agents: {total_entities}
 
-【模拟预测到的部分未来事实样本】
+Sample predicted facts from the simulation:
 {related_facts_json}
 
-请以「上帝视角」审视这个未来预演：
-1. 在我们设定的条件下，未来呈现出了什么样的状态？
-2. 各类人群（Agent）是如何反应和行动的？
-3. 这个模拟揭示了哪些值得关注的未来趋势？
+From a god's-eye view of this future preview:
+1. What state did the future take under our conditions?
+2. How did different stakeholder groups (agents) react and act?
+3. What future trends does this simulation reveal?
 
-根据预测结果，设计最合适的报告章节结构。
+Design the most appropriate report chapter structure based on the prediction results.
 
-【再次提醒】报告章节数量：最少2个，最多5个，内容要精炼聚焦于核心预测发现。"""
+Reminder: 2–10 chapters, content concise and focused on core findings. Use English for all output."""
 
 # ── 章节生成 prompt ──
 
 SECTION_SYSTEM_PROMPT_TEMPLATE = """\
-你是一个「未来预测报告」的撰写专家，正在撰写报告的一个章节。
+You are an expert in writing future prediction reports. You are writing one chapter of the report.
 
-报告标题: {report_title}
-报告摘要: {report_summary}
-预测场景（模拟需求）: {simulation_requirement}
+IMPORTANT: Write all content in English. Use English for the entire chapter, including quotes and citations.
 
-当前要撰写的章节: {section_title}
+Report title: {report_title}
+Report summary: {report_summary}
+Prediction scenario (simulation requirement): {simulation_requirement}
+
+Current chapter to write: {section_title}
 
 ═══════════════════════════════════════════════════════════════
 【核心理念】
@@ -651,17 +676,24 @@ SECTION_SYSTEM_PROMPT_TEMPLATE = """\
      > "某类人群会表示：原文内容..."
    - 这些引用是模拟预测的核心证据
 
-3. 【语言一致性 - 引用内容必须翻译为报告语言】
-   - 工具返回的内容可能包含英文或中英文混杂的表述
-   - 如果模拟需求和材料原文是中文的，报告必须全部使用中文撰写
-   - 当你引用工具返回的英文或中英混杂内容时，必须将其翻译为流畅的中文后再写入报告
-   - 翻译时保持原意不变，确保表述自然通顺
-   - 这一规则同时适用于正文和引用块（> 格式）中的内容
+3. 【Language - English by default】
+   - Write the entire report in English. All content, including quotes and citations, must be in English.
+   - When quoting tool-returned content that is in another language, translate it to fluent English before writing.
+   - Preserve the original meaning; ensure natural, readable phrasing.
+   - Always use English queries for insight_forge, panorama_search, quick_search (e.g. "MacBook price increase consumer reaction 16GB RAM") to match graph and post content.
 
 4. 【忠实呈现预测结果】
    - 报告内容必须反映模拟世界中的代表未来的模拟结果
    - 不要添加模拟中不存在的信息
    - 如果某方面信息不足，如实说明
+
+5. 【优先调用 get_simulation_posts】
+   - 每个章节开始时应优先调用 get_simulation_posts 获取Agent发帖原文
+   - 这是模拟预测的核心证据来源，比图谱检索更能反映未来人群反应
+
+6. 【Report data gaps honestly】
+   - If get_simulation_posts, insight_forge, panorama_search, quick_search return no predicted facts (agent posts, reactions, sentiment) related to the simulation announcement, state clearly that "the current graph/simulation data has no predicted facts to support this section." Do not fabricate.
+   - Use the "Data Gaps and Directions for Future Supplementation" style: the simulation setup was injected, but predicted facts representing stakeholder reactions did not appear in retrieval results; existing graph content is background only and does not constitute predictive evidence for social and market reactions to the announcement.
 
 ═══════════════════════════════════════════════════════════════
 【⚠️ 格式规范 - 极其重要！】
@@ -708,6 +740,7 @@ SECTION_SYSTEM_PROMPT_TEMPLATE = """\
 {tools_description}
 
 【工具使用建议 - 请混合使用不同工具，不要只用一种】
+- get_simulation_posts: 【首选】获取模拟Agent发帖原文，可直接引用作为报告证据
 - insight_forge: 深度洞察分析，自动分解问题并多维度检索事实和关系
 - panorama_search: 广角全景搜索，了解事件全貌、时间线和演变过程
 - quick_search: 快速验证某个具体信息点
@@ -799,39 +832,39 @@ Observation（检索结果）:
 {result}
 
 ═══════════════════════════════════════════════════════════════
-已调用工具 {tool_calls_count}/{max_tool_calls} 次（已用: {used_tools_str}）{unused_hint}
-- 如果信息充分：以 "Final Answer:" 开头输出章节内容（必须引用上述原文）
-- 如果需要更多信息：调用一个工具继续检索
+Tools called {tool_calls_count}/{max_tool_calls} times (used: {used_tools_str}){unused_hint}
+- If sufficient: output section content starting with "Final Answer:" (must cite the above)
+- If more needed: call a tool to retrieve more
 ═══════════════════════════════════════════════════════════════"""
 
 REACT_INSUFFICIENT_TOOLS_MSG = (
-    "【注意】你只调用了{tool_calls_count}次工具，至少需要{min_tool_calls}次。"
-    "请再调用工具获取更多模拟数据，然后再输出 Final Answer。{unused_hint}"
+    "[Note] You have only called tools {tool_calls_count} times; at least {min_tool_calls} required. "
+    "Call more tools to get simulation data, then output Final Answer.{unused_hint}"
 )
 
 REACT_INSUFFICIENT_TOOLS_MSG_ALT = (
-    "当前只调用了 {tool_calls_count} 次工具，至少需要 {min_tool_calls} 次。"
-    "请调用工具获取模拟数据。{unused_hint}"
+    "Only {tool_calls_count} tool calls so far; at least {min_tool_calls} required. "
+    "Call tools to get simulation data.{unused_hint}"
 )
 
 REACT_TOOL_LIMIT_MSG = (
-    "工具调用次数已达上限（{tool_calls_count}/{max_tool_calls}），不能再调用工具。"
-    '请立即基于已获取的信息，以 "Final Answer:" 开头输出章节内容。'
+    "Tool call limit reached ({tool_calls_count}/{max_tool_calls}). No more tool calls. "
+    'Output section content starting with "Final Answer:" based on what you have.'
 )
 
-REACT_UNUSED_TOOLS_HINT = "\n💡 你还没有使用过: {unused_list}，建议尝试不同工具获取多角度信息"
+REACT_UNUSED_TOOLS_HINT = "\nTip: You have not used: {unused_list}. Try different tools for varied perspectives."
 
-REACT_FORCE_FINAL_MSG = "已达到工具调用限制，请直接输出 Final Answer: 并生成章节内容。"
+REACT_FORCE_FINAL_MSG = "Tool call limit reached. Output Final Answer: and generate the section content."
 
 # ── Chat prompt ──
 
 CHAT_SYSTEM_PROMPT_TEMPLATE = """\
-你是一个简洁高效的模拟预测助手。
+You are a concise simulation prediction assistant.
 
-【背景】
-预测条件: {simulation_requirement}
+Background:
+Simulation requirement: {simulation_requirement}
 
-【已生成的分析报告】
+Generated analysis report:
 {report_content}
 
 【规则】
@@ -853,7 +886,7 @@ CHAT_SYSTEM_PROMPT_TEMPLATE = """\
 - 使用 > 格式引用关键内容
 - 优先给出结论，再解释原因"""
 
-CHAT_OBSERVATION_SUFFIX = "\n\n请简洁回答问题。"
+CHAT_OBSERVATION_SUFFIX = "\n\nPlease answer concisely."
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -872,38 +905,38 @@ class ReportAgent:
     """
     
     # 最大工具调用次数（每个章节）
-    MAX_TOOL_CALLS_PER_SECTION = 5
+    MAX_TOOL_CALLS_PER_SECTION = 15
     
     # 最大反思轮数
-    MAX_REFLECTION_ROUNDS = 3
+    MAX_REFLECTION_ROUNDS = 15
     
     # 对话中的最大工具调用次数
-    MAX_TOOL_CALLS_PER_CHAT = 2
+    MAX_TOOL_CALLS_PER_CHAT = 15
     
     def __init__(
         self, 
         graph_id: str,
         simulation_id: str,
         simulation_requirement: str,
-        llm_client: Optional[LLMClient] = None,
-        zep_tools: Optional[ZepToolsService] = None
+        llm_client: Optional[CursorAgentClient] = None,
+        zep_tools: Optional[LocalZepTools] = None,
     ):
         """
         初始化Report Agent
-        
+
         Args:
             graph_id: 图谱ID
             simulation_id: 模拟ID
             simulation_requirement: 模拟需求描述
-            llm_client: LLM客户端（可选）
-            zep_tools: Zep工具服务（可选）
+            llm_client: Cursor Agent 客户端（可选）
+            zep_tools: 本地图谱工具（可选）
         """
         self.graph_id = graph_id
         self.simulation_id = simulation_id
         self.simulation_requirement = simulation_requirement
-        
-        self.llm = llm_client or LLMClient()
-        self.zep_tools = zep_tools or ZepToolsService()
+
+        self.llm = llm_client or CursorAgentClient()
+        self.zep_tools = zep_tools or LocalZepTools(llm_client=self.llm)
         
         # 工具定义
         self.tools = self._define_tools()
@@ -939,7 +972,7 @@ class ReportAgent:
                 "description": TOOL_DESC_QUICK_SEARCH,
                 "parameters": {
                     "query": "搜索查询字符串",
-                    "limit": "返回结果数量（可选，默认10）"
+                    "limit": "返回结果数量（可选，默认30）"
                 }
             },
             "interview_agents": {
@@ -947,7 +980,16 @@ class ReportAgent:
                 "description": TOOL_DESC_INTERVIEW_AGENTS,
                 "parameters": {
                     "interview_topic": "采访主题或需求描述（如：'了解学生对宿舍甲醛事件的看法'）",
-                    "max_agents": "最多采访的Agent数量（可选，默认5，最大10）"
+                    "max_agents": "最多采访的Agent数量（可选，默认15，最大50）"
+                }
+            },
+            "get_simulation_posts": {
+                "name": "get_simulation_posts",
+                "description": TOOL_DESC_GET_SIMULATION_POSTS,
+                "parameters": {
+                    "platform": "平台过滤（可选：twitter/reddit，不传则两平台）",
+                    "limit": "返回数量（可选，默认100）",
+                    "query": "关键词过滤帖子内容（可选）"
                 }
             }
         }
@@ -994,7 +1036,7 @@ class ReportAgent:
             elif tool_name == "quick_search":
                 # 简单搜索 - 快速检索
                 query = parameters.get("query", "")
-                limit = parameters.get("limit", 10)
+                limit = parameters.get("limit", 30)
                 if isinstance(limit, str):
                     limit = int(limit)
                 result = self.zep_tools.quick_search(
@@ -1007,15 +1049,30 @@ class ReportAgent:
             elif tool_name == "interview_agents":
                 # 深度采访 - 调用真实的OASIS采访API获取模拟Agent的回答（双平台）
                 interview_topic = parameters.get("interview_topic", parameters.get("query", ""))
-                max_agents = parameters.get("max_agents", 5)
+                max_agents = parameters.get("max_agents", 15)
                 if isinstance(max_agents, str):
                     max_agents = int(max_agents)
-                max_agents = min(max_agents, 10)
+                max_agents = min(max_agents, 50)
                 result = self.zep_tools.interview_agents(
                     simulation_id=self.simulation_id,
                     interview_requirement=interview_topic,
                     simulation_requirement=self.simulation_requirement,
                     max_agents=max_agents
+                )
+                return result.to_text()
+            
+            elif tool_name == "get_simulation_posts":
+                # 从模拟SQLite数据库读取Agent发帖原文
+                platform = parameters.get("platform")
+                limit = parameters.get("limit", 100)
+                if isinstance(limit, str):
+                    limit = int(limit)
+                query = parameters.get("query")
+                result = self.zep_tools.get_simulation_posts(
+                    simulation_id=self.simulation_id,
+                    platform=platform,
+                    limit=limit,
+                    query=query,
                 )
                 return result.to_text()
             
@@ -1054,14 +1111,14 @@ class ReportAgent:
                 return json.dumps(result, ensure_ascii=False, indent=2)
             
             else:
-                return f"未知工具: {tool_name}。请使用以下工具之一: insight_forge, panorama_search, quick_search"
+                return f"Unknown tool: {tool_name}. Use one of: insight_forge, panorama_search, quick_search, get_simulation_posts, interview_agents"
                 
         except Exception as e:
             logger.error(f"工具执行失败: {tool_name}, 错误: {str(e)}")
             return f"工具执行失败: {str(e)}"
     
     # 合法的工具名称集合，用于裸 JSON 兜底解析时校验
-    VALID_TOOL_NAMES = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
+    VALID_TOOL_NAMES = {"insight_forge", "panorama_search", "quick_search", "interview_agents", "get_simulation_posts"}
 
     def _parse_tool_calls(self, response: str) -> List[Dict[str, Any]]:
         """
@@ -1173,7 +1230,7 @@ class ReportAgent:
         )
 
         try:
-            response = self.llm.chat_json(
+            response = self.llm.chat_json_messages(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -1286,7 +1343,7 @@ class ReportAgent:
         min_tool_calls = 3  # 最少工具调用次数
         conflict_retries = 0  # 工具调用与Final Answer同时出现的连续冲突次数
         used_tools = set()  # 记录已调用过的工具名
-        all_tools = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
+        all_tools = {"get_simulation_posts", "insight_forge", "panorama_search", "quick_search", "interview_agents"}
 
         # 报告上下文，用于InsightForge的子问题生成
         report_context = f"章节标题: {section.title}\n模拟需求: {self.simulation_requirement}"
@@ -1299,8 +1356,8 @@ class ReportAgent:
                     f"深度检索与撰写中 ({tool_calls_count}/{self.MAX_TOOL_CALLS_PER_SECTION})"
                 )
             
-            # 调用LLM
-            response = self.llm.chat(
+            # 调用 Cursor Agent
+            response = self.llm.chat_messages(
                 messages=messages,
                 temperature=0.5,
                 max_tokens=4096
@@ -1312,7 +1369,7 @@ class ReportAgent:
                 # 如果还有迭代次数，添加消息并重试
                 if iteration < max_iterations - 1:
                     messages.append({"role": "assistant", "content": "（响应为空）"})
-                    messages.append({"role": "user", "content": "请继续生成内容。"})
+                    messages.append({"role": "user", "content": "Please continue generating content."})
                     continue
                 # 最后一次迭代也返回 None，跳出循环进入强制收尾
                 break
@@ -1338,11 +1395,11 @@ class ReportAgent:
                     messages.append({
                         "role": "user",
                         "content": (
-                            "【格式错误】你在一次回复中同时包含了工具调用和 Final Answer，这是不允许的。\n"
-                            "每次回复只能做以下两件事之一：\n"
-                            "- 调用一个工具（输出一个 <tool_call> 块，不要写 Final Answer）\n"
-                            "- 输出最终内容（以 'Final Answer:' 开头，不要包含 <tool_call>）\n"
-                            "请重新回复，只做其中一件事。"
+                            "[Format error] You included both a tool call and Final Answer in one response. Not allowed.\n"
+                            "Each response must do only one of:\n"
+                            "- Call a tool (output one <tool_call> block, no Final Answer)\n"
+                            "- Output final content (start with 'Final Answer:', no <tool_call>)\n"
+                            "Please reply again with only one."
                         ),
                     })
                     continue
@@ -1503,7 +1560,7 @@ class ReportAgent:
         logger.warning(f"章节 {section.title} 达到最大迭代次数，强制生成")
         messages.append({"role": "user", "content": REACT_FORCE_FINAL_MSG})
         
-        response = self.llm.chat(
+        response = self.llm.chat_messages(
             messages=messages,
             temperature=0.5,
             max_tokens=4096
@@ -1512,7 +1569,7 @@ class ReportAgent:
         # 检查强制收尾时 LLM 返回是否为 None
         if response is None:
             logger.error(f"章节 {section.title} 强制收尾时 LLM 返回 None，使用默认错误提示")
-            final_answer = f"（本章节生成失败：LLM 返回空响应，请稍后重试）"
+            final_answer = "(Chapter generation failed: LLM returned empty response. Please retry later.)"
         elif "Final Answer:" in response:
             final_answer = response.split("Final Answer:")[-1].strip()
         else:
@@ -1620,7 +1677,7 @@ class ReportAgent:
             # 保存大纲到文件
             ReportManager.save_outline(report_id, outline)
             ReportManager.update_progress(
-                report_id, "planning", 15, f"大纲规划完成，共{len(outline.sections)}个章节",
+                report_id, "planning", 15, f"Outline complete, {len(outline.sections)} sections",
                 completed_sections=[]
             )
             ReportManager.save_report(report)
@@ -1824,7 +1881,7 @@ class ReportAgent:
         max_iterations = 2  # 减少迭代轮数
         
         for iteration in range(max_iterations):
-            response = self.llm.chat(
+            response = self.llm.chat_messages(
                 messages=messages,
                 temperature=0.5
             )
@@ -1864,7 +1921,7 @@ class ReportAgent:
             })
         
         # 达到最大迭代，获取最终响应
-        final_response = self.llm.chat(
+        final_response = self.llm.chat_messages(
             messages=messages,
             temperature=0.5
         )
@@ -2517,7 +2574,7 @@ class ReportManager:
         return None
     
     @classmethod
-    def list_reports(cls, simulation_id: Optional[str] = None, limit: int = 50) -> List[Report]:
+    def list_reports(cls, simulation_id: Optional[str] = None, limit: int = 100) -> List[Report]:
         """列出报告"""
         cls._ensure_reports_dir()
         

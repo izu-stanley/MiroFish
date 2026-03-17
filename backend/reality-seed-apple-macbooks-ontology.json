@@ -1,0 +1,209 @@
+{
+    "entity_types": [
+        {
+            "name": "MediaOutlet",
+            "description": "Tech media organization that publishes news, reviews, and coverage of Apple and iPhone.",
+            "attributes": [
+                {"name": "org_name", "type": "text", "description": "Official name of the outlet"},
+                {"name": "url", "type": "text", "description": "Primary website or channel URL"},
+                {"name": "description", "type": "text", "description": "Brief description of focus and audience"}
+            ],
+            "examples": ["The Verge", "MacRumors", "9to5Mac", "CNET", "Ars Technica"]
+        },
+        {
+            "name": "TechJournalist",
+            "description": "Individual tech journalist, reviewer, or analyst who reports or leaks on Apple and devices.",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Full name or known handle"},
+                {"name": "title", "type": "text", "description": "Job title or role (e.g. EIC, analyst)"},
+                {"name": "affiliation", "type": "text", "description": "Employer or platform (e.g. Bloomberg, YouTube)"}
+            ],
+            "examples": ["Mark Gurman", "Marques Brownlee", "Ming-Chi Kuo", "Nilay Patel", "Linus Sebastian"]
+        },
+        {
+            "name": "Developer",
+            "description": "Software developer who builds or maintains iOS apps and depends on hardware and API cycles.",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Full name or handle"},
+                {"name": "role", "type": "text", "description": "Development role or focus"},
+                {"name": "description", "type": "text", "description": "Brief context (e.g. indie iOS dev)"}
+            ],
+            "examples": ["iOS indie developer", "App studio lead", "iOS engineer"]
+        },
+        {
+            "name": "TechEnthusiast",
+            "description": "Power user who follows leaks, specs, and releases and actively posts or discusses on social media.",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Display name or handle"},
+                {"name": "description", "type": "text", "description": "Brief profile (e.g. upgrade cycle, interests)"}
+            ],
+            "examples": ["Power user", "Leak follower", "Specs enthusiast"]
+        },
+        {
+            "name": "OnlineCommunity",
+            "description": "Online community or forum that discusses iPhone, Apple, or tech (e.g. subreddit, Tech Twitter).",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Community name or handle (e.g. r/iPhone)"},
+                {"name": "platform", "type": "text", "description": "Platform (e.g. Reddit, Twitter/X)"},
+                {"name": "description", "type": "text", "description": "Brief description of community focus"}
+            ],
+            "examples": ["r/iPhone", "r/apple", "r/ios", "Tech Twitter", "r/Android"]
+        },
+        {
+            "name": "Advocate",
+            "description": "Individual or organization advocating for a cause (e.g. right-to-repair, privacy, accessibility).",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Name of person or organization"},
+                {"name": "cause", "type": "text", "description": "Primary cause or advocacy focus"},
+                {"name": "description", "type": "text", "description": "Brief description of advocacy role"}
+            ],
+            "examples": ["iFixit", "Louis Rossmann", "Privacy advocate", "Accessibility advocate"]
+        },
+        {
+            "name": "Company",
+            "description": "Consumer tech or related company (e.g. Apple, resale platforms) that can comment or be discussed.",
+            "attributes": [
+                {"name": "org_name", "type": "text", "description": "Official company name"},
+                {"name": "industry", "type": "text", "description": "Industry or sector"},
+                {"name": "description", "type": "text", "description": "Brief description of relevance"}
+            ],
+            "examples": ["Apple", "Swappa", "Gazelle", "Back Market"]
+        },
+        {
+            "name": "Carrier",
+            "description": "Telecom carrier that sells iPhones and runs upgrade, trade-in, and subsidy programs.",
+            "attributes": [
+                {"name": "org_name", "type": "text", "description": "Carrier brand name"},
+                {"name": "region", "type": "text", "description": "Primary region or market"},
+                {"name": "description", "type": "text", "description": "Brief description of carrier role"}
+            ],
+            "examples": ["Verizon", "AT&T", "T-Mobile", "Apple carrier partner"]
+        },
+        {
+            "name": "Person",
+            "description": "Any individual not fitting a more specific person type; e.g. everyday user, parent, student.",
+            "attributes": [
+                {"name": "full_name", "type": "text", "description": "Display name or handle"},
+                {"name": "description", "type": "text", "description": "Optional brief context"}
+            ],
+            "examples": ["Everyday iPhone user", "Parent", "Student", "Dating app user", "International user"]
+        },
+        {
+            "name": "Organization",
+            "description": "Any organization not fitting a more specific type; e.g. university, small NGO, association.",
+            "attributes": [
+                {"name": "org_name", "type": "text", "description": "Official organization name"},
+                {"name": "description", "type": "text", "description": "Optional brief context"}
+            ],
+            "examples": ["Alumni association", "User group", "Small NGO"]
+        }
+    ],
+    "edge_types": [
+        {
+            "name": "WORKS_FOR",
+            "description": "Employment or contractual relationship between a person or entity and an organization.",
+            "source_targets": [
+                {"source": "TechJournalist", "target": "MediaOutlet"},
+                {"source": "Developer", "target": "Company"},
+                {"source": "Person", "target": "MediaOutlet"},
+                {"source": "Person", "target": "Company"},
+                {"source": "Person", "target": "Carrier"},
+                {"source": "Person", "target": "Organization"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "REPORTS_ON",
+            "description": "Covers, reviews, or publishes news about a company, product, or topic.",
+            "source_targets": [
+                {"source": "MediaOutlet", "target": "Company"},
+                {"source": "TechJournalist", "target": "Company"},
+                {"source": "TechJournalist", "target": "Carrier"},
+                {"source": "MediaOutlet", "target": "Carrier"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "MEMBER_OF",
+            "description": "Participation or membership in an online community or organization.",
+            "source_targets": [
+                {"source": "Person", "target": "OnlineCommunity"},
+                {"source": "TechEnthusiast", "target": "OnlineCommunity"},
+                {"source": "Developer", "target": "OnlineCommunity"},
+                {"source": "TechJournalist", "target": "OnlineCommunity"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "COMMENTS_ON",
+            "description": "Public comment, review, or take on a topic, entity, or announcement.",
+            "source_targets": [
+                {"source": "TechJournalist", "target": "Company"},
+                {"source": "TechEnthusiast", "target": "Company"},
+                {"source": "OnlineCommunity", "target": "Company"},
+                {"source": "Advocate", "target": "Company"},
+                {"source": "Person", "target": "Company"},
+                {"source": "MediaOutlet", "target": "Company"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "RESPONDS_TO",
+            "description": "Official or public response to another entity, post, or announcement.",
+            "source_targets": [
+                {"source": "Company", "target": "MediaOutlet"},
+                {"source": "Company", "target": "TechJournalist"},
+                {"source": "Carrier", "target": "Company"},
+                {"source": "Person", "target": "Person"},
+                {"source": "TechJournalist", "target": "TechJournalist"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "SUPPORTS",
+            "description": "Public support or endorsement of a position, entity, or product.",
+            "source_targets": [
+                {"source": "Person", "target": "Company"},
+                {"source": "TechEnthusiast", "target": "Company"},
+                {"source": "TechJournalist", "target": "Company"},
+                {"source": "Advocate", "target": "Company"},
+                {"source": "OnlineCommunity", "target": "Company"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "OPPOSES",
+            "description": "Public criticism or opposition to a position, entity, or product.",
+            "source_targets": [
+                {"source": "Advocate", "target": "Company"},
+                {"source": "TechJournalist", "target": "Company"},
+                {"source": "Person", "target": "Company"},
+                {"source": "OnlineCommunity", "target": "Company"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "AFFILIATED_WITH",
+            "description": "Non-employment affiliation (e.g. analyst, contributor, partner).",
+            "source_targets": [
+                {"source": "TechJournalist", "target": "MediaOutlet"},
+                {"source": "TechJournalist", "target": "Company"},
+                {"source": "Advocate", "target": "Organization"},
+                {"source": "Person", "target": "Organization"}
+            ],
+            "attributes": []
+        },
+        {
+            "name": "CUSTOMER_OF",
+            "description": "Customer or user relationship with a company or carrier.",
+            "source_targets": [
+                {"source": "Person", "target": "Company"},
+                {"source": "Person", "target": "Carrier"},
+                {"source": "TechEnthusiast", "target": "Company"},
+                {"source": "Developer", "target": "Company"}
+            ],
+            "attributes": []
+        }
+    ],
+    "analysis_summary": "The text describes a scenario seed for simulating social media reaction to Apple skipping the iPhone 18 release in 2026. Stakeholders include tech media (outlets and journalists), developers, power users and everyday consumers, online communities (Reddit, Tech Twitter), right-to-repair advocates, Apple and resale companies, and carriers. The ontology uses 8 specific entity types (MediaOutlet, TechJournalist, Developer, TechEnthusiast, OnlineCommunity, Advocate, Company, Carrier) plus Person and Organization as fallbacks, and 9 edge types capturing employment, reporting, membership, commenting, responding, support, opposition, affiliation, and customer relationships for舆论 simulation."
+}

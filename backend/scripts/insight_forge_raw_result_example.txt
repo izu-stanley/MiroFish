@@ -1,0 +1,34 @@
+=== insight_forge raw tool result ===
+(Query: "MacBook price increase future trends risks consumer reaction competitor repairability"
+ graph_id: mirofish_local_04f59b373607, report_context: 章节: 值得关注的未来趋势与风险)
+
+## 未来预测深度分析
+分析问题: MacBook price increase future trends risks consumer reaction competitor repairability
+预测场景: Simulate how consumers, tech media, developers, and investors would react on Twitter and Reddit if Apple announces a 15% price increase across all MacBook models while simultaneously upgrading base RAM to 16GB on every SKU.
+
+### 预测数据统计
+- 相关预测事实: 5条
+- 涉及实体: 3个
+- 关系链: 2条
+
+### 分析的子问题
+1. MacBook price increase future trends risks consumer reaction competitor repairability
+
+### 【关键事实】
+1. "Bob Mansfield was SVP Technologies at Apple and led MacBook Air development."
+2. "Jony Ive was Chief Design Officer at Apple until 2019 and designed unibody MacBooks."
+3. "[Apple Inc.]: Tech company that manufactures MacBook laptops since 2006; holds ~9% global PC market share and leads the premium segment."
+4. "[Bob Mansfield]: Former SVP Technologies at Apple, led MacBook Air development, retired."
+5. "[Jony Ive]: Former Chief Design Officer at Apple (left 2019), designed unibody MacBooks."
+
+### 【核心实体】
+- **Apple Inc.** (实体)
+  摘要: "Tech company that manufactures MacBook laptops since 2006; holds ~9% global PC market share and leads the premium segment."
+- **Bob Mansfield** (实体)
+  摘要: "Former SVP Technologies at Apple, led MacBook Air development, retired."
+- **Jony Ive** (实体)
+  摘要: "Former Chief Design Officer at Apple (left 2019), designed unibody MacBooks."
+
+### 【关系链】
+- Bob Mansfield was SVP Technologies at Apple and led MacBook Air development.
+- Jony Ive was Chief Design Officer at Apple until 2019 and designed unibody MacBooks.

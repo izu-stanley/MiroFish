@@ -440,7 +440,7 @@ class TwitterSimulationRunner:
         
         # 如果 .env 中没有，则使用 config 作为备用
         if not llm_model:
-            llm_model = self.config.get("llm_model", "gpt-4o-mini")
+            llm_model = self.config.get("llm_model", "smollm:360m")
         
         # 设置 camel-ai 所需的环境变量
         if llm_api_key:
@@ -481,7 +481,7 @@ class TwitterSimulationRunner:
         
         # 基础激活数量
         base_min = time_config.get("agents_per_hour_min", 5)
-        base_max = time_config.get("agents_per_hour_max", 20)
+        base_max = time_config.get("agents_per_hour_max", 300)
         
         # 根据时段调整
         peak_hours = time_config.get("peak_hours", [9, 10, 11, 14, 15, 20, 21, 22])
@@ -547,14 +547,14 @@ class TwitterSimulationRunner:
         minutes_per_round = time_config.get("minutes_per_round", 30)
         
         # 计算总轮数
-        total_rounds = (total_hours * 60) // minutes_per_round
-        
-        # 如果指定了最大轮数，则截断
+        config_rounds = (total_hours * 60) // minutes_per_round
+        # 如果指定了 max_rounds，则使用它作为目标轮数（覆盖配置）
         if max_rounds is not None and max_rounds > 0:
-            original_rounds = total_rounds
-            total_rounds = min(total_rounds, max_rounds)
-            if total_rounds < original_rounds:
-                print(f"\n轮数已截断: {original_rounds} -> {total_rounds} (max_rounds={max_rounds})")
+            total_rounds = max_rounds
+            if total_rounds != config_rounds:
+                print(f"\n轮数由 max_rounds 覆盖: {config_rounds} -> {total_rounds}")
+        else:
+            total_rounds = config_rounds
         
         print(f"\n模拟参数:")
         print(f"  - 总模拟时长: {total_hours}小时")

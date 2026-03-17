@@ -25,7 +25,7 @@ class LLMClient:
         self.model = model or Config.LLM_MODEL_NAME
         
         if not self.api_key:
-            raise ValueError("LLM_API_KEY 未配置")
+            raise ValueError("LLM_API_KEY not configured")
         
         self.client = OpenAI(
             api_key=self.api_key,
@@ -61,7 +61,16 @@ class LLMClient:
         if response_format:
             kwargs["response_format"] = response_format
         
-        response = self.client.chat.completions.create(**kwargs)
+        try:
+            response = self.client.chat.completions.create(**kwargs)
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "404" in err_msg or "not found" in err_msg:
+                raise ValueError(
+                    f"LLM model '{self.model}' not found. "
+                    f"If using Ollama, run: ollama pull {self.model}"
+                ) from e
+            raise
         content = response.choices[0].message.content
         # 部分模型（如MiniMax M2.5）会在content中包含<think>思考内容，需要移除
         content = re.sub(r'<think>[\s\S]*?</think>', '', content).strip()
@@ -99,5 +108,5 @@ class LLMClient:
         try:
             return json.loads(cleaned_response)
         except json.JSONDecodeError:
-            raise ValueError(f"LLM返回的JSON格式无效: {cleaned_response}")
+            raise ValueError(f"LLM returned invalid JSON: {cleaned_response}")
 

@@ -3,7 +3,7 @@
 """
 
 from .file_parser import FileParser
-from .llm_client import LLMClient
+from .cursor_agent_client import CursorAgentClient
 
-__all__ = ['FileParser', 'LLMClient']
+__all__ = ['FileParser', 'CursorAgentClient']
 

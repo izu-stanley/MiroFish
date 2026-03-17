@@ -357,7 +357,7 @@ def list_reports():
     
     Query参数：
         simulation_id: 按模拟ID过滤（可选）
-        limit: 返回数量限制（默认50）
+        limit: 返回数量限制（默认100）
     
     返回：
         {
@@ -368,7 +368,7 @@ def list_reports():
     """
     try:
         simulation_id = request.args.get('simulation_id')
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get('limit', 100, type=int)
         
         reports = ReportManager.list_reports(
             simulation_id=simulation_id,
@@ -952,9 +952,8 @@ def search_graph_tool():
                 "error": "请提供 graph_id 和 query"
             }), 400
         
-        from ..services.zep_tools import ZepToolsService
-        
-        tools = ZepToolsService()
+        from ..services.local_zep_tools import LocalZepTools
+        tools = LocalZepTools()
         result = tools.search_graph(
             graph_id=graph_id,
             query=query,
@@ -996,9 +995,8 @@ def get_graph_statistics_tool():
                 "error": "请提供 graph_id"
             }), 400
         
-        from ..services.zep_tools import ZepToolsService
-        
-        tools = ZepToolsService()
+        from ..services.local_zep_tools import LocalZepTools
+        tools = LocalZepTools()
         result = tools.get_graph_statistics(graph_id)
         
         return jsonify({

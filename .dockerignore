@@ -1,23 +1,36 @@
-.git
-.github
-.gitignore
-.cursor
-.DS_Store
-.env
-
+# Dependencies
 node_modules
 frontend/node_modules
 backend/.venv
-.venv
-.python-version
+backend/venv
 
-__pycache__
-*.pyc
-.pytest_cache
-.mypy_cache
-.ruff_cache
+# Environment
+.env
+.env.*
+!.env.example
 
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+.cursor
+
+# Build outputs
 frontend/dist
-frontend/.vite
+backend/dist
+*.egg-info
 
-backend/uploads
+# Logs and uploads (mounted as volume)
+backend/uploads/*
+backend/logs
+*.log
+
+# Test and docs
+backend/__pycache__
+frontend/.vite
+.pytest_cache
+.coverage
+htmlcov
